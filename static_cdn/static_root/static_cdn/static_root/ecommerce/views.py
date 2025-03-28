@@ -1,11 +1,16 @@
 
 from django.contrib.auth import authenticate, login,get_user_model
-from django.http import HttpResponse
+from django.http import HttpResponse,JsonResponse
 from django.shortcuts import render,redirect
-from .forms import ContactForm,LoginForm,RegisterForm
+from .forms import ContactForm
+from accounts.views import login_page,register_page,logout_req
+
 
 
 def home_page(request):
+
+    # print(request.session.get("first_name","Unknown"))  #getter in session
+    # request.session['first_name']
     context={
         "title":"This the basic home page",
         "content":"Welcome to the home page",
@@ -27,10 +32,19 @@ def contact_page(request):
     context={
         "heading":"This is last page i.e contact_page",
         "content":"Welcome to the contact page",
-        "form":contact_form
+        "form":contact_form,
+        
     }
     if contact_form.is_valid():
         print(contact_form.cleaned_data)
+        if request.META.get('HTTP_X_REQUESTED_WITH') == 'XMLHttpRequest':
+            return JsonResponse({"message":"Thank you for your submission"})
+        
+    if contact_form.errors:
+        errors = contact_form.errors.as_json()
+        if request.META.get('HTTP_X_REQUESTED_WITH') == 'XMLHttpRequest':
+            return HttpResponse(errors,status=400,content_type='application/json')
+        
     # if request.method=="POST":
     #     print(request.POST)
     #     print(request.POST.get('full_name'))
@@ -39,52 +53,43 @@ def contact_page(request):
     return render(request,'contact/views.html',context=context)
 
 
-def login_page(request):
-    form = LoginForm(request.POST or None)
-    context = {
-        "form": form
-    }
-    print("User logged in")
-    #print(request.user.is_authenticated())
-    if form.is_valid():
-        print(form.cleaned_data)
-        username  = form.cleaned_data.get("username")
-        password  = form.cleaned_data.get("password")
-        user = authenticate(request, username=username, password=password)
-        print(user)
-        #print(request.user.is_authenticated())
-        if user is not None:
-            #print(request.user.is_authenticated())
-            login(request, user)
-            # Redirect to a success page.
-            #context['form'] = LoginForm()
-            return redirect("/home")
-        else:
-            # Return an 'invalid login' error message.
-            print("Error")
-
-    return render(request, "auth/login.html", context)
 
 
+# def login_page(request):
+#     form = LoginForm(request.POST or None)
+#     context = {
+#         "form": form
+#     }
+#     next_ = request.GET.get('next')
+#     next_post = request.POST.get('next')
+#     # redirect_path = next_ or next_post or None
+#     if form.is_valid():
+#         username  = form.cleaned_data.get("username")
+#         password  = form.cleaned_data.get("password")
+#         user = authenticate(request, username=username, password=password)
+#         if user is not None:
+#             login(request, user)
+#             return redirect("/home")
+#         else:
+#             # Return an 'invalid login' error message.
+#             print("Error")
+#     return render(request, "auth/login.html", context)
 
-User=get_user_model()
-def register_page(request):
-    form=RegisterForm(request.POST or None)
-    context={
-        "form":form
-    }
-    
-    if form.is_valid():
-        print(form.cleaned_data)
-        username  = form.cleaned_data.get("username")
-        email  = form.cleaned_data.get("email")
-        password  = form.cleaned_data.get("password")
-        new_user = User.objects.create_user(username,email,password)
-        print(new_user)
-    return render(request,"auth/register.html",context)
 
-
-
+# User=get_user_model()
+# def register_page(request):
+#     form = RegisterForm(request.POST or None)
+#     context = {
+#         "form": form
+#     }
+#     if form.is_valid():
+#         print(form.cleaned_data)
+#         username=form.cleaned_data.get("username")
+#         email=form.cleaned_data.get("email")
+#         password=form.cleaned_data.get("password")
+#         new_user=User.objects.create_user(username,email,password)
+#         print(new_user)
+#     return render(request, "auth/register.html", context)
 
 def home_page_old(request):
     html_="""

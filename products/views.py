@@ -3,6 +3,9 @@ from django.shortcuts import render,get_list_or_404
 from django.views.generic import ListView,DetailView
 from .models import ProductModel
 from carts.models import CartModel
+from analytics.mixins import ObjectViewedMixin
+
+
 
 # Create your views here.
 class ProductFeaturedListView(ListView):
@@ -13,7 +16,7 @@ class ProductFeaturedListView(ListView):
         request=self.request
         return ProductModel.objects.all().featured()
     
-class ProductFeaturedDetailView(DetailView):
+class ProductFeaturedDetailView(ObjectViewedMixin,DetailView):
     queryset=ProductModel.objects.all().featured()
     template_name="products/featured-detail.html"
 
@@ -31,6 +34,11 @@ class ProductListView(ListView):
     #     context=super(ProductListView,self).get_context_data(*args,**kwargs)
     #     print(context)
     #     return context 
+    def get_context_data(self, *args,**kwargs):
+        context=super(ProductListView,self).get_context_data(*args,**kwargs)
+        cart_obj,new_obj=CartModel.objects.new_or_get(self.request)
+        context['cart']=cart_obj
+        return context
 
     def get_queryset(self,*args,**kwargs):
         request=self.request
@@ -46,7 +54,7 @@ def product_list_view(request):
 
 
 
-class ProductDetailslugView(DetailView):
+class ProductDetailslugView(ObjectViewedMixin,DetailView):
     queryset=ProductModel.objects.all()
     template_name="products/detail.html"
 
@@ -60,6 +68,7 @@ class ProductDetailslugView(DetailView):
     def get_object(self,*args,**kwargs):
         request=self.request
         slug=self.kwargs.get('slug')
+        
         # instance= get_list_or_404(ProductModel,slug=slug,active=True)
         try:
             instance=ProductModel.objects.get(slug=slug,active=True)
@@ -74,7 +83,7 @@ class ProductDetailslugView(DetailView):
     
 
 
-class ProductDetailView(DetailView):
+class ProductDetailView(ObjectViewedMixin,DetailView):
     # queryset=ProductModel.objects.all()
     template_name="products/detail.html"
 
@@ -87,7 +96,7 @@ class ProductDetailView(DetailView):
     def get_object(self,*args,**kwargs):
         request=self.request
         pk=self.kwargs.get('pk')
-        instance=ProductModel.objects.get_by_id(pk)
+        instance=ProductModel.objects.get_by_id(pk) # type: ignore
         if instance is None:
             raise Http404("Product Doesn't exist")
         return instance
